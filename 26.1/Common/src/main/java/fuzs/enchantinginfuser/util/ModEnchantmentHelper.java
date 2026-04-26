@@ -8,6 +8,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.ItemStack;
@@ -18,15 +19,25 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class ModEnchantmentHelper {
 
-    public static Collection<Holder<Enchantment>> getEnchantmentsForItem(RegistryAccess registryAccess, ItemStack itemStack, TagKey<Enchantment> availableEnchantments, boolean primaryOnly) {
+    public static Collection<Holder<Enchantment>> getEnchantmentsForItem(RegistryAccess registryAccess, ItemStack itemStack, TagKey<Enchantment> availableEnchantments, boolean primaryOnly, boolean includeTreasureEnchantments) {
         Registry<Enchantment> enchantments = registryAccess.lookupOrThrow(Registries.ENCHANTMENT);
         boolean isBook = isBook(itemStack);
-        return enchantments.get(availableEnchantments)
+        Set<Holder<Enchantment>> allowedEnchantments = new LinkedHashSet<>(enchantments.get(availableEnchantments)
                 .stream()
                 .flatMap(HolderSet::stream)
+                .toList());
+        if (includeTreasureEnchantments) {
+            enchantments.get(EnchantmentTags.TREASURE)
+                    .stream()
+                    .flatMap(HolderSet::stream)
+                    .forEach(allowedEnchantments::add);
+        }
+        return allowedEnchantments.stream()
                 .filter((Holder<Enchantment> holder) -> {
                     if (isBook) {
                         return true;

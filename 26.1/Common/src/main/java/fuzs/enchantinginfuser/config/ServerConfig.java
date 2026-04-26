@@ -52,6 +52,8 @@ public class ServerConfig implements ConfigCore {
         public CostsConfig costs = new CostsConfig();
         @Config(description = "Allow enchantments that can normally not be obtained from an enchanting table, but can be put on the item in an anvil (e.g. sharpness on an axe).")
         public boolean allowAnvilEnchantments = false;
+        @Config(description = "Allow treasure enchantments to appear in the infuser menu.")
+        public boolean allowTreasureEnchantments = false;
         @Config(description = "Allow applying enchantments even when they are normally incompatible with each other.")
         public boolean allowIncompatibleEnchantments = false;
     }

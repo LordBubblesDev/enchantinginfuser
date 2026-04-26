@@ -491,7 +491,8 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         Collection<Holder<Enchantment>> enchantments = ModEnchantmentHelper.getEnchantmentsForItem(level.registryAccess(),
                 this.getEnchantableStack(),
                 this.type.getAvailableEnchantments(),
-                !this.getConfig().allowAnvilEnchantments);
+                !this.getConfig().allowAnvilEnchantments,
+                this.getConfig().allowTreasureEnchantments);
         int enchantmentValue = this.getEnchantableStack().has(DataComponents.ENCHANTABLE) ?
                 this.getEnchantableStack().get(DataComponents.ENCHANTABLE).value() : 0;
         this.availableEnchantmentLevels = EnchantmentPowerHelper.getAvailableEnchantmentLevels(this.getEnchantmentPower(),

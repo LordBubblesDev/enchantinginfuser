@@ -54,6 +54,8 @@ public class ServerConfig implements ConfigCore {
         public boolean allowAnvilEnchantments = false;
         @Config(description = "Allow treasure enchantments to appear in the infuser menu.")
         public boolean allowTreasureEnchantments = false;
+        @Config(description = "Show an additional toggle button that reveals all enchantments, including ones that normally do not work on the current item.")
+        public boolean allowIllegalEnchantments = false;
         @Config(description = "Allow applying enchantments even when they are normally incompatible with each other.")
         public boolean allowIncompatibleEnchantments = false;
     }

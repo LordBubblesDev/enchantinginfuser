@@ -26,6 +26,7 @@ public class ModLanguageProvider extends AbstractLanguageProvider {
         builder.add(EnchantmentTooltipHelper.KEY_CURRENT_ENCHANTING_POWER, "Enchanting Power: %s / %s");
         builder.add(InfuserScreen.KEY_TOOLTIP_HINT,
                 "Place more bookshelves in a square around the infuser on up to two layers.");
+        builder.add(InfuserScreen.KEY_TOOLTIP_ILLEGAL, "Reveal all enchantments, including the ones that don't work on the current item.");
         builder.add(InfuserMenuButton.KEY_TOOLTIP_DURABILITY, "Durability: %s");
         builder.add(InfuserMenuButton.KEY_TOOLTIP_CHANGE, "%s -> %s");
         builder.add(InfuserMenuButton.KEY_TOOLTIP_EXPERIENCE, "Gain Experience Points");

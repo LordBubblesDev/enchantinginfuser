@@ -55,6 +55,10 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
             "container/infuser/repair_button"),
             EnchantingInfuser.id("container/infuser/repair_button_disabled"),
             EnchantingInfuser.id("container/infuser/repair_button_highlighted"));
+    public static final WidgetSprites ILLEGAL_ENCHANTMENTS_BUTTON_SPRITES = new WidgetSprites(EnchantingInfuser.id(
+            "container/infuser/illegal_enchantments_button"),
+            EnchantingInfuser.id("container/infuser/illegal_enchantments_button_disabled"),
+            EnchantingInfuser.id("container/infuser/illegal_enchantments_button_highlighted"));
     public static final WidgetSprites REMOVE_BUTTON_SPRITES = new WidgetSprites(EnchantingInfuser.id(
             "container/infuser/remove_button"),
             EnchantingInfuser.id("container/infuser/remove_button_disabled"),
@@ -65,11 +69,15 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
             EnchantingInfuser.id("container/infuser/add_button_highlighted"));
     public static final String KEY_TOOLTIP_HINT = Util.makeDescriptionId("gui",
             EnchantingInfuser.id("infusing.tooltip.enchanting_power_hint"));
+    public static final String KEY_TOOLTIP_ILLEGAL = Util.makeDescriptionId("gui",
+            EnchantingInfuser.id("infusing.tooltip.illegal_enchantments"));
     public static final int SQUARE_BUTTON_SIZE = 18;
     private static final int BUTTONS_OFFSET_X = 7;
-    private static final int ENCHANT_BUTTON_OFFSET_Y = 44;
-    private static final int ENCHANT_ONLY_BUTTON_OFFSET_Y = 55;
-    private static final int REPAIR_BUTTON_OFFSET_Y = 66;
+    private static final int BUTTON_TOP_WITH_TWO_ICONS = 55;
+    private static final int BUTTON_TOP_WITH_THREE_ICONS = 44;
+    private static final int BUTTON_TOP_WITH_FOUR_ICONS = 37;
+    private static final int BUTTON_SPACING = 22;
+    private static final int BUTTON_SPACING_WITH_FOUR_ICONS = 20;
 
     private static boolean isPowerTooLow;
     private final int enchantmentSeed = new Random().nextInt();
@@ -80,6 +88,8 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
     private InfuserMenuButton enchantButton;
     @Nullable
     private InfuserMenuButton repairButton;
+    @Nullable
+    private IllegalEnchantmentsButton illegalEnchantmentsButton;
 
     public InfuserScreen(InfuserMenu infuserMenu, Inventory inventory, Component title) {
         super(infuserMenu, inventory, title, 220, 185);
@@ -136,18 +146,26 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
                         Style.EMPTY.withColor(ChatFormatting.RED));
             }
         });
+        boolean hasRepairButton = this.getMenu().getConfig().allowRepairing.isActive();
+        boolean hasIllegalButton = this.getMenu().getConfig().allowIllegalEnchantments;
+        int iconCount = 2 + (hasRepairButton ? 1 : 0) + (hasIllegalButton ? 1 : 0);
+        int firstButtonOffsetY = switch (iconCount) {
+            case 2 -> BUTTON_TOP_WITH_TWO_ICONS;
+            case 4 -> BUTTON_TOP_WITH_FOUR_ICONS;
+            default -> BUTTON_TOP_WITH_THREE_ICONS;
+        };
+        int buttonSpacing = iconCount == 4 ? BUTTON_SPACING_WITH_FOUR_ICONS : BUTTON_SPACING;
         this.enchantButton = this.addRenderableWidget(new InfuserEnchantButton(this.leftPos + BUTTONS_OFFSET_X,
-                this.topPos + (this.getMenu().getConfig().allowRepairing.isActive() ? ENCHANT_BUTTON_OFFSET_Y :
-                        ENCHANT_ONLY_BUTTON_OFFSET_Y),
+                this.topPos + firstButtonOffsetY,
                 (Button button) -> {
                     if (this.getMenu().clickMenuButton(this.minecraft.player, InfuserMenu.ENCHANT_BUTTON)) {
                         this.minecraft.gameMode.handleInventoryButtonClick((this.getMenu()).containerId, 0);
                     }
                     this.searchBox.setValue("");
                 }));
-        if (this.getMenu().getConfig().allowRepairing.isActive()) {
+        if (hasRepairButton) {
             this.repairButton = this.addRenderableWidget(new InfuserRepairButton(this.leftPos + BUTTONS_OFFSET_X,
-                    this.topPos + REPAIR_BUTTON_OFFSET_Y,
+                    this.topPos + firstButtonOffsetY + buttonSpacing,
                     (Button button) -> {
                         if (this.getMenu().clickMenuButton(this.minecraft.player, InfuserMenu.REPAIR_BUTTON)) {
                             this.minecraft.gameMode.handleInventoryButtonClick((this.getMenu()).containerId, 1);
@@ -155,6 +173,23 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
                     }));
         } else {
             this.repairButton = null;
+        }
+        if (hasIllegalButton) {
+            int illegalButtonOffsetY = firstButtonOffsetY + (hasRepairButton ? buttonSpacing * 2 : buttonSpacing);
+            this.illegalEnchantmentsButton = this.addRenderableWidget(new IllegalEnchantmentsButton(this.leftPos + BUTTONS_OFFSET_X,
+                    this.topPos + illegalButtonOffsetY,
+                    ILLEGAL_ENCHANTMENTS_BUTTON_SPRITES,
+                    (Button button) -> {
+                        if (this.getMenu()
+                                .clickMenuButton(this.minecraft.player, InfuserMenu.ILLEGAL_ENCHANTMENTS_BUTTON)) {
+                            this.minecraft.gameMode.handleInventoryButtonClick((this.getMenu()).containerId,
+                                    InfuserMenu.ILLEGAL_ENCHANTMENTS_BUTTON);
+                        }
+                    }));
+            TooltipBuilder.create().splitLines(180).addLines(Component.translatable(KEY_TOOLTIP_ILLEGAL)).build(
+                    this.illegalEnchantmentsButton);
+        } else {
+            this.illegalEnchantmentsButton = null;
         }
 
         this.refreshAllButtons();
@@ -164,6 +199,7 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
         this.refreshButton(InfuserMenu.ENCHANTMENT_POWER_DATA_SLOT);
         this.refreshButton(InfuserMenu.ENCHANTING_COST_DATA_SLOT);
         this.refreshButton(InfuserMenu.REPAIR_COST_DATA_SLOT);
+        this.refreshButton(InfuserMenu.ILLEGAL_ENCHANTMENTS_DATA_SLOT);
     }
 
     private void refreshButton(int dataSlot) {
@@ -180,6 +216,14 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
                     this.refreshButton(this.repairButton,
                             this.getMenu().getRepairCost(),
                             this.getMenu().canRepair(this.minecraft.player));
+                }
+            }
+            case InfuserMenu.ILLEGAL_ENCHANTMENTS_DATA_SLOT -> {
+                if (this.illegalEnchantmentsButton != null) {
+                    this.illegalEnchantmentsButton.setToggled(this.getMenu().isShowingIllegalEnchantments());
+                    this.illegalEnchantmentsButton.active = this.getMenu().canToggleIllegalEnchantments();
+                    this.getMenu().refreshClientEnchantmentMaps();
+                    this.refreshSearchResults();
                 }
             }
         }
@@ -317,7 +361,7 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
         String searchQuery = this.searchBox.getValue().toLowerCase(Locale.ROOT).trim();
         if (searchQuery.isEmpty()) {
             return true;
-        } else if (this.getMenu().getAvailableEnchantmentLevel(holder) == 0) {
+        } else if (!this.getMenu().isShowingIllegalEnchantments() && this.getMenu().getAvailableEnchantmentLevel(holder) == 0) {
             return false;
         } else {
             return holder.value().description().getString().toLowerCase(Locale.ROOT).contains(searchQuery);
@@ -327,6 +371,9 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
     @Override
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         isPowerTooLow = false;
+        if (this.illegalEnchantmentsButton != null) {
+            this.illegalEnchantmentsButton.active = this.getMenu().canToggleIllegalEnchantments();
+        }
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
 
@@ -357,6 +404,7 @@ public class InfuserScreen extends AbstractWidgetsContainerScreen<InfuserMenu> i
         if (dataSlotIndex == InfuserMenu.ENCHANT_ITEM_SLOT) {
             this.refreshButton(InfuserMenu.ENCHANTING_COST_DATA_SLOT);
             this.refreshButton(InfuserMenu.REPAIR_COST_DATA_SLOT);
+            this.refreshButton(InfuserMenu.ILLEGAL_ENCHANTMENTS_DATA_SLOT);
         }
     }
 

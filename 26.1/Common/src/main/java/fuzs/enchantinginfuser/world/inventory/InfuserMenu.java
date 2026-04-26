@@ -56,10 +56,12 @@ import java.util.function.IntUnaryOperator;
 public class InfuserMenu extends AbstractContainerMenu implements ContainerListener {
     public static final int ENCHANT_BUTTON = 0;
     public static final int REPAIR_BUTTON = 1;
+    public static final int ILLEGAL_ENCHANTMENTS_BUTTON = 2;
     public static final int ENCHANT_ITEM_SLOT = 0;
     public static final int ENCHANTMENT_POWER_DATA_SLOT = 0;
     public static final int ENCHANTING_COST_DATA_SLOT = 1;
     public static final int REPAIR_COST_DATA_SLOT = 2;
+    public static final int ILLEGAL_ENCHANTMENTS_DATA_SLOT = 3;
 
     private final InfuserType type;
     private final Container enchantSlots;
@@ -68,6 +70,7 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
     private final DataSlot enchantmentPower = DataSlot.standalone();
     private final DataSlot enchantingCost = DataSlot.standalone();
     private final DataSlot repairCost = DataSlot.standalone();
+    private final DataSlot illegalEnchantments = DataSlot.standalone();
     private Object2IntMap<Holder<Enchantment>> enchantmentLevels = Object2IntMaps.emptyMap();
     private Object2IntMap<Holder<Enchantment>> availableEnchantmentLevels = Object2IntMaps.emptyMap();
     private Object2IntMap<Holder<Enchantment>> requiredEnchantmentPowers = Object2IntMaps.emptyMap();
@@ -85,7 +88,15 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         this.enchantSlots = container;
         this.levelAccess = levelAccess;
         this.player = inventory.player;
-        this.addSlot(new Slot(container, 0, 8, this.getConfig().allowRepairing.isActive() ? 23 : 34) {
+        int enchantSlotY;
+        if (this.getConfig().allowRepairing.isActive() && this.getConfig().allowIllegalEnchantments) {
+            enchantSlotY = 18;
+        } else if (this.getConfig().allowRepairing.isActive() || this.getConfig().allowIllegalEnchantments) {
+            enchantSlotY = 23;
+        } else {
+            enchantSlotY = 34;
+        }
+        this.addSlot(new Slot(container, 0, 8, enchantSlotY) {
             @Override
             public int getMaxStackSize() {
                 return 1;
@@ -147,6 +158,7 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         this.addDataSlot(this.enchantmentPower);
         this.addDataSlot(this.enchantingCost);
         this.addDataSlot(this.repairCost);
+        this.addDataSlot(this.illegalEnchantments);
     }
 
     public ServerConfig.InfuserConfig getConfig() {
@@ -175,16 +187,7 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         // only called on the server anyway as the slot listener only works there
         if (container == this.enchantSlots) {
             this.levelAccess.execute((Level level, BlockPos pos) -> {
-                this.enchantmentPower.set(this.getAvailablePower(level, pos));
-                if (this.mayEnchantStack(this.getEnchantableStack())) {
-                    this.setInitialEnchantments(level, Optional.of(this.getOriginalEnchantments()));
-                    this.enchantingCost.set(this.calculateEnchantingCost());
-                    this.repairCost.set(this.calculateRepairCost());
-                } else {
-                    this.setInitialEnchantments(level, Optional.empty());
-                    this.enchantingCost.set(0);
-                    this.repairCost.set(0);
-                }
+                this.reloadMenuState(level, pos);
             });
         }
 
@@ -263,8 +266,10 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
             if (newEnchantmentLevel != enchantmentLevel) {
                 this.enchantmentLevels.put(enchantment, newEnchantmentLevel);
                 this.markedDirty = !this.getItemEnchantments().equals(this.getOriginalEnchantments());
-                this.enchantingCost.set(this.calculateEnchantingCost());
-                this.broadcastChanges();
+                if (!this.player.level().isClientSide()) {
+                    this.enchantingCost.set(this.calculateEnchantingCost());
+                    this.broadcastChanges();
+                }
             }
 
             return newEnchantmentLevel;
@@ -276,8 +281,50 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         return switch (id) {
             case ENCHANT_BUTTON -> this.clickEnchantButton(player);
             case REPAIR_BUTTON -> this.clickRepairButton(player);
+            case ILLEGAL_ENCHANTMENTS_BUTTON -> this.clickIllegalEnchantmentsButton();
             default -> false;
         };
+    }
+
+    private boolean clickIllegalEnchantmentsButton() {
+        if (!this.canToggleIllegalEnchantments()) {
+            return false;
+        }
+
+        this.levelAccess.execute((Level level, BlockPos pos) -> {
+            this.illegalEnchantments.set(this.illegalEnchantments.get() == 0 ? 1 : 0);
+            this.reloadMenuState(level, pos);
+            this.broadcastChanges();
+        });
+
+        return true;
+    }
+
+    private void reloadMenuState(Level level, BlockPos pos) {
+        ItemStack enchantableStack = this.getEnchantableStack();
+        boolean mayModifyStack = this.mayEnchantStack(enchantableStack);
+        boolean shouldInitializeEnchantments = mayModifyStack
+                || this.getConfig().allowIllegalEnchantments
+                && this.isShowingIllegalEnchantments()
+                && !enchantableStack.isEmpty();
+        this.enchantmentPower.set(this.getAvailablePower(level, pos));
+        if (shouldInitializeEnchantments) {
+            this.setInitialEnchantments(level, Optional.of(this.getOriginalEnchantments()));
+        } else {
+            this.setInitialEnchantments(level, Optional.empty());
+        }
+        this.enchantingCost.set(mayModifyStack ? this.calculateEnchantingCost() : 0);
+        this.repairCost.set(mayModifyStack ? this.calculateRepairCost() : 0);
+    }
+
+    public boolean canToggleIllegalEnchantments() {
+        if (!this.getConfig().allowIllegalEnchantments) {
+            return false;
+        }
+        if (this.isShowingIllegalEnchantments()) {
+            return true;
+        }
+        return !this.getEnchantableStack().isEmpty();
     }
 
     private boolean clickEnchantButton(Player player) {
@@ -422,6 +469,21 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         return this.repairCost.get();
     }
 
+    public boolean isShowingIllegalEnchantments() {
+        return this.illegalEnchantments.get() == 1;
+    }
+
+    public void refreshClientEnchantmentMaps() {
+        if (this.player.level().isClientSide()) {
+            if (this.getEnchantableStack().isEmpty()) {
+                this.availableEnchantmentLevels = Object2IntMaps.emptyMap();
+                this.requiredEnchantmentPowers = Object2IntMaps.emptyMap();
+            } else {
+                this.initializeEnchantmentMaps(this.player.level());
+            }
+        }
+    }
+
     public boolean canEnchant(Player player) {
         if (!this.getEnchantableStack().isEmpty() && this.markedDirty) {
             return player.experienceLevel >= this.getEnchantingCost() || player.getAbilities().instabuild;
@@ -492,7 +554,8 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
                 this.getEnchantableStack(),
                 this.type.getAvailableEnchantments(),
                 !this.getConfig().allowAnvilEnchantments,
-                this.getConfig().allowTreasureEnchantments);
+                this.getConfig().allowTreasureEnchantments,
+                this.getConfig().allowIllegalEnchantments && this.isShowingIllegalEnchantments());
         int enchantmentValue = this.getEnchantableStack().has(DataComponents.ENCHANTABLE) ?
                 this.getEnchantableStack().get(DataComponents.ENCHANTABLE).value() : 0;
         this.availableEnchantmentLevels = EnchantmentPowerHelper.getAvailableEnchantmentLevels(this.getEnchantmentPower(),

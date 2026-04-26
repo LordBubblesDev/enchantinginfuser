@@ -62,6 +62,7 @@ run
 .DS_Store
 *.txt
 **/.vscode/
+*.psd
 
 # Log file
 *.log

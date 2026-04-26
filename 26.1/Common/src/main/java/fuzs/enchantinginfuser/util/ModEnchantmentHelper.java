@@ -20,17 +20,28 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ModEnchantmentHelper {
 
-    public static Collection<Holder<Enchantment>> getEnchantmentsForItem(RegistryAccess registryAccess, ItemStack itemStack, TagKey<Enchantment> availableEnchantments, boolean primaryOnly, boolean includeTreasureEnchantments) {
+    public static Collection<Holder<Enchantment>> getEnchantmentsForItem(RegistryAccess registryAccess, ItemStack itemStack, TagKey<Enchantment> availableEnchantments, boolean primaryOnly, boolean includeTreasureEnchantments, boolean includeIllegalEnchantments) {
         Registry<Enchantment> enchantments = registryAccess.lookupOrThrow(Registries.ENCHANTMENT);
         boolean isBook = isBook(itemStack);
-        Set<Holder<Enchantment>> allowedEnchantments = new LinkedHashSet<>(enchantments.get(availableEnchantments)
-                .stream()
-                .flatMap(HolderSet::stream)
-                .toList());
+        Set<Holder<Enchantment>> allowedEnchantments;
+        if (includeIllegalEnchantments) {
+            allowedEnchantments = enchantments.keySet()
+                    .stream()
+                    .map(enchantments::get)
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        } else {
+            allowedEnchantments = new LinkedHashSet<>(enchantments.get(availableEnchantments)
+                    .stream()
+                    .flatMap(HolderSet::stream)
+                    .toList());
+        }
         if (includeTreasureEnchantments) {
             enchantments.get(EnchantmentTags.TREASURE)
                     .stream()
@@ -39,6 +50,9 @@ public class ModEnchantmentHelper {
         }
         return allowedEnchantments.stream()
                 .filter((Holder<Enchantment> holder) -> {
+                    if (includeIllegalEnchantments) {
+                        return true;
+                    }
                     if (isBook) {
                         return true;
                     } else if (primaryOnly) {

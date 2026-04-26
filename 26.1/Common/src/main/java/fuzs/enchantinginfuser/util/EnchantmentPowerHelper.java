@@ -97,7 +97,9 @@ public class EnchantmentPowerHelper {
         if (reducedPowerLimit.compareTo(Fraction.ZERO) < 0) {
             reducedPowerLimit = Fraction.ZERO;
         }
-        int scaledPowerForLevel = Math.round(relativePowerForLevel.multiplyBy(reducedPowerLimit).floatValue());
+        // Avoid Fraction overflow for extreme enchantment pools (e.g. illegal mode exposing all enchantments).
+        double scaledPower = relativePowerForLevel.doubleValue() * reducedPowerLimit.doubleValue();
+        int scaledPowerForLevel = (int) Math.round(scaledPower);
         if (enchantment.is(EnchantmentTags.CURSE)) {
             scaledPowerForLevel *= 3;
         } else if (enchantment.is(EnchantmentTags.TREASURE)) {
@@ -120,6 +122,9 @@ public class EnchantmentPowerHelper {
         int minPower = getMinPower(itemEnchantments);
         int maxPower = getMaxPower(itemEnchantments);
         int powerForLevel = getPowerForLevel(enchantment, enchantmentLevel);
+        if (maxPower <= minPower) {
+            return Fraction.ZERO;
+        }
         return Fraction.getFraction(powerForLevel - minPower, maxPower - minPower);
     }
 

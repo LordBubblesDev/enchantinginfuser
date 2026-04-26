@@ -1,0 +1,65 @@
+name: EnchantingInfuser Build and Upload
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version/tag (e.g. v26.1.0)
+        required: true
+
+env:
+  JAVA_VERSION: 25
+  MINECRAFT_VERSION: 26.1
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: ${{ env.MINECRAFT_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: microsoft
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches/neofor*
+            ~/.gradle/caches/fabric*
+            ~/.gradle/caches/modules-*
+            ~/.gradle/caches/loom-cache
+            .gradle/loom-cache
+          key: ${{ runner.os }}-modtooling-${{ hashFiles('**/gradle.properties', '**/build.gradle', '**/settings.gradle', '**/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-modtooling-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build Fabric + NeoForge with Gradle
+        run: ./gradlew :Fabric:assemble :NeoForge:assemble --rerun-tasks
+
+      - name: Publish (GitHub Releases)
+        id: publish_github
+        uses: Kira-NT/mc-publish@995edadc13559a8b28d0b7e6571229f067ec7659
+        with:
+          github-token: ${{ github.token }}
+          github-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          version: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          files: |
+            ${{ env.MINECRAFT_VERSION }}/Fabric/build/libs/!(*-@(dev|sources|javadoc|slim)).jar
+            ${{ env.MINECRAFT_VERSION }}/NeoForge/build/libs/!(*-@(dev|sources|javadoc|slim)).jar

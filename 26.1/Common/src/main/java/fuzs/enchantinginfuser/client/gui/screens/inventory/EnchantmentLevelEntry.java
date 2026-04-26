@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import fuzs.enchantinginfuser.EnchantingInfuser;
 import fuzs.enchantinginfuser.client.util.EnchantmentTooltipHelper;
 import fuzs.enchantinginfuser.world.inventory.InfuserMenu;
-import fuzs.puzzleslib.api.util.v1.ComponentHelper;
+import fuzs.puzzleslib.common.api.util.v1.ComponentHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -26,12 +26,14 @@ public record EnchantmentLevelEntry(int level,
     public static final Component UNKNOWN_ENCHANT_COMPONENT = Component.translatable(Util.makeDescriptionId("gui",
             EnchantingInfuser.id("enchantment.tooltip.unknown_enchantment"))).withStyle(ChatFormatting.GRAY);
 
-    public static EnchantmentLevelEntry create(Holder<Enchantment> enchantment, InfuserMenu.EnchantmentValues enchantmentValues, ItemEnchantments itemEnchantments) {
+    public static EnchantmentLevelEntry create(Holder<Enchantment> enchantment, InfuserMenu.EnchantmentValues enchantmentValues, ItemEnchantments itemEnchantments, boolean allowIncompatibleEnchantments) {
         int enchantmentLevel = itemEnchantments.getLevel(enchantment);
         Set<Holder<Enchantment>> incompatibleEnchantments = new HashSet<>();
-        for (Holder<Enchantment> holder : itemEnchantments.keySet()) {
-            if (!enchantment.is(holder) && !Enchantment.areCompatible(enchantment, holder)) {
-                incompatibleEnchantments.add(holder);
+        if (!allowIncompatibleEnchantments) {
+            for (Holder<Enchantment> holder : itemEnchantments.keySet()) {
+                if (!enchantment.is(holder) && !Enchantment.areCompatible(enchantment, holder)) {
+                    incompatibleEnchantments.add(holder);
+                }
             }
         }
 

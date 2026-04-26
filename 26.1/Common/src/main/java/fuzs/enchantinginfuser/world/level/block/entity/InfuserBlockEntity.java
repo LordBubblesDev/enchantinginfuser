@@ -4,9 +4,9 @@ import fuzs.enchantinginfuser.init.ModRegistry;
 import fuzs.enchantinginfuser.world.inventory.InfuserMenu;
 import fuzs.enchantinginfuser.world.level.block.InfuserBlock;
 import fuzs.enchantinginfuser.world.level.block.InfuserType;
-import fuzs.puzzleslib.api.block.v1.entity.TickingBlockEntity;
-import fuzs.puzzleslib.api.container.v1.ListBackedContainer;
-import fuzs.puzzleslib.api.container.v1.MenuProviderWithData;
+import fuzs.puzzleslib.common.api.block.v1.entity.TickingBlockEntity;
+import fuzs.puzzleslib.common.api.container.v1.ListBackedContainer;
+import fuzs.puzzleslib.common.api.container.v1.MenuProviderWithData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -39,7 +39,6 @@ public class InfuserBlockEntity extends EnchantingTableBlockEntity implements Wo
 
     public InfuserBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(blockPos, blockState);
-        this.type = this.getType();
     }
 
     @Override
@@ -121,7 +120,6 @@ public class InfuserBlockEntity extends EnchantingTableBlockEntity implements Wo
         return this.lockKey.canUnlock(player);
     }
 
-    @Override
     public void clientTick() {
         bookAnimationTick(this.level, this.worldPosition, this.getBlockState(), this);
     }

@@ -1,9 +1,9 @@
 package fuzs.enchantinginfuser.config;
 
-import fuzs.puzzleslib.api.config.v3.Config;
-import fuzs.puzzleslib.api.config.v3.ConfigCore;
-import fuzs.puzzleslib.api.config.v3.ValueCallback;
-import fuzs.puzzleslib.api.core.v1.ModLoaderEnvironment;
+import fuzs.puzzleslib.common.api.config.v3.Config;
+import fuzs.puzzleslib.common.api.config.v3.ConfigCore;
+import fuzs.puzzleslib.common.api.config.v3.ValueCallback;
+import fuzs.puzzleslib.common.api.core.v1.ModLoaderEnvironment;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class ServerConfig implements ConfigCore {
@@ -52,6 +52,8 @@ public class ServerConfig implements ConfigCore {
         public CostsConfig costs = new CostsConfig();
         @Config(description = "Allow enchantments that can normally not be obtained from an enchanting table, but can be put on the item in an anvil (e.g. sharpness on an axe).")
         public boolean allowAnvilEnchantments = false;
+        @Config(description = "Allow applying enchantments even when they are normally incompatible with each other.")
+        public boolean allowIncompatibleEnchantments = false;
     }
 
     public static class RepairConfig implements ConfigCore {

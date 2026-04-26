@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    modCompileOnly(libs.puzzleslib.common)
-    modApi(libs.puzzleslib.neoforge)
+    modCompileOnly("fuzs.puzzleslib:puzzleslib-common:26.1.0")
+    modApi("fuzs.puzzleslib:puzzleslib-neoforge:26.1.0")
 }

@@ -12,9 +12,9 @@ import fuzs.enchantinginfuser.util.PlayerExperienceHelper;
 import fuzs.enchantinginfuser.world.item.enchantment.EnchantingBehavior;
 import fuzs.enchantinginfuser.world.level.block.InfuserBlock;
 import fuzs.enchantinginfuser.world.level.block.InfuserType;
-import fuzs.puzzleslib.api.container.v1.QuickMoveRuleSet;
-import fuzs.puzzleslib.api.network.v4.MessageSender;
-import fuzs.puzzleslib.api.network.v4.PlayerSet;
+import fuzs.puzzleslib.common.api.container.v1.QuickMoveRuleSet;
+import fuzs.puzzleslib.common.api.network.v4.MessageSender;
+import fuzs.puzzleslib.common.api.network.v4.PlayerSet;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMaps;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -91,16 +91,44 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
                 return 1;
             }
         });
+        EquipmentSlot[] armorSlots = {
+                EquipmentSlot.HEAD,
+                EquipmentSlot.CHEST,
+                EquipmentSlot.LEGS,
+                EquipmentSlot.FEET
+        };
         for (int k = 0; k < 4; ++k) {
-            EquipmentSlot equipmentSlot = InventoryMenu.SLOT_IDS[k];
-            Identifier identifier = InventoryMenu.TEXTURE_EMPTY_SLOTS.get(equipmentSlot);
-            this.addSlot(new ArmorSlot(inventory,
-                    inventory.player,
-                    equipmentSlot,
-                    39 - k,
-                    8 + 188 * (k / 2),
-                    103 + (k % 2) * 18,
-                    identifier));
+            EquipmentSlot equipmentSlot = armorSlots[k];
+            Identifier identifier = switch (equipmentSlot) {
+                case HEAD -> InventoryMenu.EMPTY_ARMOR_SLOT_HELMET;
+                case CHEST -> InventoryMenu.EMPTY_ARMOR_SLOT_CHESTPLATE;
+                case LEGS -> InventoryMenu.EMPTY_ARMOR_SLOT_LEGGINGS;
+                case FEET -> InventoryMenu.EMPTY_ARMOR_SLOT_BOOTS;
+                default -> InventoryMenu.EMPTY_ARMOR_SLOT_HELMET;
+            };
+            int slotIndex = 39 - k;
+            this.addSlot(new Slot(inventory, slotIndex, 8 + 188 * (k / 2), 103 + (k % 2) * 18) {
+                @Override
+                public int getMaxStackSize() {
+                    return 1;
+                }
+
+                @Override
+                public boolean mayPlace(ItemStack stack) {
+                    return inventory.player.getEquipmentSlotForItem(stack) == equipmentSlot;
+                }
+
+                @Override
+                public void setByPlayer(ItemStack newItemStack, ItemStack oldItemStack) {
+                    inventory.player.onEquipItem(equipmentSlot, oldItemStack, newItemStack);
+                    super.setByPlayer(newItemStack, oldItemStack);
+                }
+
+                @Override
+                public Identifier getNoItemIcon() {
+                    return identifier;
+                }
+            });
         }
 
         this.addStandardInventorySlots(inventory, 30, 103);
@@ -220,7 +248,9 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
     public int clickEnchantmentLevelButton(Holder<Enchantment> enchantment, IntUnaryOperator operation) {
         // the enchantment is newly added and is not compatible with existing enchantments, so no level is allowed
         int enchantmentLevel = this.enchantmentLevels.getInt(enchantment);
-        if (enchantmentLevel == 0 && !EnchantmentHelper.isEnchantmentCompatible(this.getItemEnchantments().keySet(),
+        if (!this.getConfig().allowIncompatibleEnchantments
+                && enchantmentLevel == 0
+                && !EnchantmentHelper.isEnchantmentCompatible(this.getItemEnchantments().keySet(),
                 enchantment)) {
             return 0;
         } else {
@@ -272,7 +302,7 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
                         SoundEvents.ENCHANTMENT_TABLE_USE,
                         SoundSource.BLOCKS,
                         1.0F,
-                        level.random.nextFloat() * 0.1F + 0.9F);
+                        level.getRandom().nextFloat() * 0.1F + 0.9F);
             });
 
             return true;
@@ -286,7 +316,7 @@ public class InfuserMenu extends AbstractContainerMenu implements ContainerListe
         if (enchantingCost < 0) {
             int amount = PlayerExperienceHelper.calculateExperienceDelta(this.getItemEnchantments(),
                     this.getOriginalEnchantments(),
-                    level.random);
+                    level.getRandom());
             ExperienceOrb.award((ServerLevel) level, Vec3.atCenterOf(blockPos.above()), amount);
         } else if (!player.getAbilities().instabuild) {
             // don't use Player::onEnchantmentPerformed as it also resets enchantments seed which we have nothing to do with

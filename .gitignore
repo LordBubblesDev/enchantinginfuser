@@ -61,6 +61,7 @@ gradle-app.setting
 run
 .DS_Store
 *.txt
+**/.vscode/
 
 # Log file
 *.log

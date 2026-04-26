@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-    modCompileOnlyApi(libs.puzzleslib.common)
+    modCompileOnlyApi("fuzs.puzzleslib:puzzleslib-common:26.1.0")
 }

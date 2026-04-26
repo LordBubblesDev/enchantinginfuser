@@ -1,5 +1,6 @@
 package fuzs.enchantinginfuser.data.client;
 
+import fuzs.enchantinginfuser.client.renderer.blockentity.InfuserRenderer;
 import fuzs.puzzleslib.common.api.client.data.v2.AbstractAtlasProvider;
 import fuzs.puzzleslib.common.api.data.v2.core.DataProviderContext;
 
@@ -11,6 +12,6 @@ public class ModAtlasProvider extends AbstractAtlasProvider {
 
     @Override
     public void addAtlases() {
-        // 26.1 renderer currently uses vanilla enchanting table atlas entries.
+        this.addMaterial(InfuserRenderer.BOOK_LOCATION);
     }
 }

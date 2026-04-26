@@ -120,8 +120,9 @@ public class InfuserBlockEntity extends EnchantingTableBlockEntity implements Wo
         return this.lockKey.canUnlock(player);
     }
 
-    public void clientTick() {
-        bookAnimationTick(this.level, this.worldPosition, this.getBlockState(), this);
+    @Override
+    public void clientTick(net.minecraft.world.level.Level level, BlockPos blockPos, BlockState blockState) {
+        bookAnimationTick(level, blockPos, blockState, this);
     }
 
     @Override
